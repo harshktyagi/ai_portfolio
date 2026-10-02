@@ -1,6 +1,7 @@
 candidate_profile ={
     'name' : 'Harsh Tyagi',
     'target_role' : 'AI Backend Engineer / AI Python Engineer / LLM Engineer',
+    'current_status' : 'Actively transitioning into AI Backend Engineering, self-leaned, upskilling and focused on LLM APIs, FastAPI, and structured output systems.',
     'summary' :  """Software Developer pivoting from Data Analysis into AI backend engineering. 
                     Self taught in AI Python fundamantals, FastAPI, and LLM integrations through project based learning. Main focus is on building and shipping structured, production-ready AI applications, API logic, and backend tools.""",
 
