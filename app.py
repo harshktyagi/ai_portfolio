@@ -6,9 +6,9 @@ import streamlit as st
 # 1. Page Configuration
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Harsh Tyagi | Portfolio Engine",
-    page_icon="⚡",
-    layout="centered",
+    page_title="Harsh's Portfolio Manager",
+    page_icon="Ħ",
+    layout="wide",
     initial_sidebar_state="collapsed",
 )
 
@@ -18,14 +18,36 @@ st.markdown(
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
-        .block-container {
-            padding-top: 6rem;
-            padding-bottom: 0rem;
-            padding-left: 1rem;
-            padding-right: 1rem;
-            max-width: 800px;
+        [data-testid="stToolbar"], [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"] {display: none !important;}
+
+        /* One seamless background everywhere (matches the app's own #0e0e10) */
+        html, body, .stApp,
+        [data-testid="stApp"],
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        section.main {
+            background-color: #0e0e10 !important;
+            overflow: hidden !important;
         }
-        body {
+
+        /* Remove the centered 800px column and all padding */
+        .block-container,
+        [data-testid="stMainBlockContainer"] {
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+        [data-testid="stVerticalBlock"] {gap: 0 !important;}
+
+        /* Pin the app iframe to the full viewport (desktop, monitor, mobile) */
+        iframe {
+            position: fixed !important;
+            top: 0; left: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            border: 0 !important;
+            z-index: 1;
             background-color: #0e0e10;
         }
     </style>
@@ -57,6 +79,7 @@ UNIFIED_APP_HTML = f"""
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
 @import url('https://fonts.cdnfonts.com/css/candara');
 
@@ -64,17 +87,14 @@ UNIFIED_APP_HTML = f"""
     box-sizing: border-box;
 }}
 
-body {{
-    background-color: transparent;
-    color: #f5f5f7;
-    font-family: 'Candara', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+html, body {{
+    height: 100%;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 600px;
+    background-color: #0e0e10;
+    color: #f5f5f7;
+    font-family: 'Candara', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
 }}
 
 .intro-stage {{
@@ -113,15 +133,13 @@ body {{
 }}
 
 .workspace-stage {{
+    position: relative;
     width: 100%;
     max-width: 680px;
+    height: 100%;
+    margin: 0 auto;
     opacity: 0;
     animation: fadeInWorkspace 1.2s cubic-bezier(0.4, 0, 0.2, 1) 10.0s forwards;
-    margin-top: 180px;
-    padding: 0 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
 }}
 
 @keyframes fadeInWorkspace {{
@@ -129,13 +147,24 @@ body {{
     100% {{ opacity: 1; transform: translateY(0); }}
 }}
 
+/* Landing View Position: Centered Header and Box */
 .ask-header {{
+    position: absolute;
+    top: 38%;
+    left: 12px;
+    right: 12px;
+    transform: translateY(-100%);
     font-size: 2.4rem;
     font-weight: 700;
     text-align: left;
     letter-spacing: -0.015em;
     color: #f5f5f7;
-    min-height: 60px;
+    margin-bottom: 20px;
+    transition: opacity 0.3s ease;
+}}
+
+.ask-header.hidden {{
+    display: none;
 }}
 
 .dynamic-word {{
@@ -147,7 +176,12 @@ body {{
 
 .fade-out {{ opacity: 0 !important; }}
 
+/* Input Box: Starts centered, drops to absolute bottom on chat start */
 .gemini-box {{
+    position: absolute;
+    top: 40%;
+    left: 12px;
+    right: 12px;
     background-color: #1e1e20;
     border: 1px solid #2f2f32;
     border-radius: 28px;
@@ -155,12 +189,78 @@ body {{
     display: flex;
     align-items: center;
     gap: 12px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+    z-index: 10;
+}}
+
+/* When active, lock box permanently at the bottom */
+.workspace-stage.chat-active .gemini-box {{
+    top: auto;
+    bottom: 16px;
 }}
 
 .gemini-box:focus-within {{
     border-color: #444448;
     box-shadow: 0 0 12px rgba(41, 151, 255, 0.15);
+}}
+
+/* Chat Container: Fixed scrolling area above input box */
+.chat-container {{
+    position: absolute;
+    top: 20px;
+    bottom: 85px;
+    left: calc(50% - 50vw);
+    right: calc(50% - 50vw);
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    padding-left: calc(50vw - 50% + 12px);
+    padding-right: calc(50vw - 50% + 12px);
+}}
+
+.workspace-stage.chat-active .chat-container {{
+    display: flex;
+}}
+
+/* Custom Scrollbar */
+.chat-container::-webkit-scrollbar {{
+    width: 6px;
+}}
+.chat-container::-webkit-scrollbar-thumb {{
+    background: #2c2c2e;
+    border-radius: 3px;
+}}
+
+.chat-bubble {{
+    max-width: 82%;
+    padding: 14px 18px;
+    border-radius: 20px;
+    font-size: 1.02rem;
+    line-height: 1.6;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    animation: fadeInBubble 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}}
+
+@keyframes fadeInBubble {{
+    0%   {{ opacity: 0; transform: translateY(10px); }}
+    100% {{ opacity: 1; transform: translateY(0); }}
+}}
+
+.user-bubble {{
+    align-self: flex-end;
+    background-color: #2997ff;
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+}}
+
+.assistant-bubble {{
+    align-self: flex-start;
+    background-color: #1e1e20;
+    border: 1px solid #2f2f32;
+    color: #e5e5ea;
+    border-bottom-left-radius: 4px;
 }}
 
 .chat-input {{
@@ -220,19 +320,6 @@ body {{
     transform: scale(0.95);
 }}
 
-.response-box {{
-    padding: 18px 20px;
-    background: #141416;
-    border-radius: 16px;
-    border: 1px solid #28282b;
-    font-size: 1.02rem;
-    line-height: 1.6;
-    color: #e5e5ea;
-    display: none;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}}
-
 .badge {{
     display: inline-block;
     padding: 2px 8px;
@@ -256,6 +343,40 @@ body {{
     60% {{ content: '...'; }}
     80%, 100% {{ content: ''; }}
 }}
+
+/* ---------- Responsive: large monitors ---------- */
+@media (min-width: 1600px) {{
+    .workspace-stage {{ max-width: 820px; }}
+    .greeting-text {{ font-size: 3.4rem; }}
+    .status-msg {{ font-size: 1.8rem; }}
+    .ask-header {{ font-size: 2.9rem; }}
+    .chat-bubble {{ font-size: 1.12rem; }}
+}}
+
+/* ---------- Responsive: tablets / phones ---------- */
+@media (max-width: 640px) {{
+    .greeting-text {{ font-size: 1.9rem; padding: 0 16px; }}
+    .status-msg {{ font-size: 1.15rem; }}
+    .ask-header {{ font-size: 1.8rem; }}
+    .gemini-box {{
+        padding: 8px 12px;
+        gap: 8px;
+        border-radius: 26px;
+    }}
+    .workspace-stage.chat-active .gemini-box {{
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    }}
+    .chat-container {{ bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }}
+    .chat-bubble {{ max-width: 92%; padding: 12px 15px; font-size: 1rem; }}
+    .chat-input {{ font-size: 16px; min-width: 0; }}
+}}
+
+/* Short landscape phones */
+@media (max-height: 480px) {{
+    .greeting-text {{ font-size: 1.6rem; }}
+    .ask-header {{ font-size: 1.5rem; top: 30%; }}
+    .gemini-box {{ top: 34%; }}
+}}
 </style>
 </head>
 <body>
@@ -267,10 +388,12 @@ body {{
         <div class="greeting-text status-msg">{status_text}</div>
     </div>
 
-    <div class="workspace-stage">
-        <div class="ask-header">
+    <div class="workspace-stage" id="workspaceStage">
+        <div class="ask-header" id="askHeader">
             <span id="typewriter-base"></span><span id="dynamic-target" class="dynamic-word"></span>
         </div>
+
+        <div class="chat-container" id="chatContainer"></div>
 
         <div class="gemini-box">
             <button class="plus-btn" id="plusBtn" title="Upload JD (.pdf, .docx, .txt)">
@@ -285,8 +408,6 @@ body {{
                 </svg>
             </button>
         </div>
-
-        <div class="response-box" id="responseBox"></div>
     </div>
 
 <script>
@@ -296,11 +417,13 @@ const words = ["Harsh", "Internships", "Education", "Projects", "Experience", "I
 
 const baseEl = document.getElementById("typewriter-base");
 const dynamicEl = document.getElementById("dynamic-target");
+const workspaceStage = document.getElementById("workspaceStage");
+const askHeader = document.getElementById("askHeader");
+const chatContainer = document.getElementById("chatContainer");
 const input = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 const plusBtn = document.getElementById("plusBtn");
 const fileInput = document.getElementById("fileInput");
-const responseBox = document.getElementById("responseBox");
 
 let chatHistory = [];
 let charIndex = 0;
@@ -392,12 +515,31 @@ function formatResponse(data) {{
     return html;
 }}
 
+function transitionToChat() {{
+    if (!workspaceStage.classList.contains("chat-active")) {{
+        askHeader.classList.add("hidden");
+        workspaceStage.classList.add("chat-active");
+    }}
+}}
+
+function appendBubble(role, content) {{
+    const bubble = document.createElement("div");
+    bubble.className = `chat-bubble ${{role === 'user' ? 'user-bubble' : 'assistant-bubble'}}`;
+    bubble.innerHTML = content;
+    chatContainer.appendChild(bubble);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    return bubble;
+}}
+
 async function sendQuery() {{
     const query = input.value.trim();
     if (!query) return;
 
-    responseBox.style.display = "block";
-    responseBox.innerHTML = '<span class="loading-dots">Connecting to Render backend (waking server up)</span>';
+    transitionToChat();
+    appendBubble("user", query);
+
+    const loadingBubble = appendBubble("assistant", '<span class="loading-dots">Connecting to Render backend (waking server up)</span>');
+
     sendBtn.setAttribute("disabled", "true");
     sendBtn.classList.remove("active");
     input.value = "";
@@ -414,20 +556,23 @@ async function sendQuery() {{
 
         if (res.ok) {{
             const data = await res.json();
-            responseBox.innerHTML = formatResponse(data);
+            loadingBubble.innerHTML = formatResponse(data);
             chatHistory.push({{ role: "user", content: query }});
             chatHistory.push({{ role: "assistant", content: JSON.stringify(data) }});
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }} else {{
-            responseBox.innerHTML = "Backend Error: Status Code " + res.status;
+            loadingBubble.innerHTML = "Backend Error: Status Code " + res.status;
         }}
     }} catch (err) {{
-        responseBox.innerHTML = "Connection Error: Unable to reach AI engine. Render server may still be spinning up. Please try sending again in 10 seconds.";
+        loadingBubble.innerHTML = "Connection Error: Unable to reach AI engine. Render server may still be spinning up. Please try sending again in 10 seconds.";
     }}
 }}
 
 async function sendFile(file) {{
-    responseBox.style.display = "block";
-    responseBox.innerHTML = `<span class="loading-dots">Processing ${{file.name}}</span>`;
+    transitionToChat();
+    appendBubble("user", `Uploaded file: ${{file.name}}`);
+
+    const loadingBubble = appendBubble("assistant", `<span class="loading-dots">Processing ${{file.name}}</span>`);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -441,14 +586,15 @@ async function sendFile(file) {{
 
         if (res.ok) {{
             const data = await res.json();
-            responseBox.innerHTML = formatResponse(data);
+            loadingBubble.innerHTML = formatResponse(data);
             chatHistory.push({{ role: "user", content: `Uploaded file: ${{file.name}}` }});
             chatHistory.push({{ role: "assistant", content: JSON.stringify(data) }});
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }} else {{
-            responseBox.innerHTML = "Error: Failed to parse uploaded file.";
+            loadingBubble.innerHTML = "Error: Failed to parse uploaded file.";
         }}
     }} catch (err) {{
-        responseBox.innerHTML = "Connection Error: Unable to reach AI engine.";
+        loadingBubble.innerHTML = "Connection Error: Unable to reach AI engine.";
     }}
 }}
 </script>
@@ -456,4 +602,4 @@ async function sendFile(file) {{
 </html>
 """
 
-st.components.v1.html(UNIFIED_APP_HTML, height=850)
+st.components.v1.html(UNIFIED_APP_HTML, height=750)
