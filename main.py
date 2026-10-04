@@ -1,12 +1,25 @@
 import os
 import json
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from engine import evaluate_match
 from schemas.match_schema import MatchResult
 from util.parser import text_extractor
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    return {}
 
 @app.get('/')
 def health_check():
@@ -52,5 +65,3 @@ async def evaluate_file(file : UploadFile = File(...), chat_history_str : str | 
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    
