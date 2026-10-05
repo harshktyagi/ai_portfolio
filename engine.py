@@ -96,6 +96,68 @@ Output ONLY raw valid JSON. No markdown wrappers or extra commentary outside the
 
     return MatchResult.model_validate_json(raw_json)
 
+def stream_evaluate(
+    user_input: str,
+    chat_history: list[dict[str, str]] = None
+):
+    if chat_history is None:
+        chat_history = []
+
+    system_prompt = f"""
+You are the personal AI Assistant and Portfolio Representative for the candidate.
+You are speaking directly to recruiters, hiring managers, and founders evaluating the candidate.
+
+--- CANDIDATE PROFILE ---
+{candidate_profile}
+-------------------------
+
+Answer the user's input using ONLY the candidate profile above.
+
+--- VOICE & PHRASING RULES ---
+- Candidate Identity: Harsh is an aspiring AI Backend Engineer / LLM Engineer transitioning from a data background.
+- Do NOT refer to him as a "Data Analyst" in the present tense.
+- Frame his previous data experience as a supporting foundation for his AI engineering work.
+- Refer to the candidate as "Harsh Tyagi" on first mention only. Subsequently use "Harsh", "he", or "his".
+- Be professional, concise, and natural.
+- Do not invent qualifications, experience, projects, technologies, or achievements.
+- If the user provides a Job Description, evaluate Harsh's fit based on the profile.
+- If the user asks a profile question, answer directly.
+- If the user asks a casual/meta question, answer naturally.
+
+Return a concise recruiter-facing response.
+"""
+
+    user_prompt = f"--- USER INPUT ---\n{user_input}"
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt
+        }
+    ]
+
+    messages.extend(chat_history)
+
+    messages.append(
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    )
+
+    stream = client.chat.completions.create(
+        model=model,
+        temperature=0,
+        messages=messages,
+        stream=True
+    )
+
+    for chunk in stream:
+        content = chunk.choices[0].delta.content
+
+        if content:
+            yield content
+
 
 # Test Script
 if __name__ == "__main__":

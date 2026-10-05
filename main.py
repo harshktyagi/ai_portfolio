@@ -1,9 +1,10 @@
 import os
 import json
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from engine import evaluate_match
+from engine import evaluate_match, stream_evaluate
 from schemas.match_schema import MatchResult
 from util.parser import text_extractor
 
@@ -37,6 +38,20 @@ def evaluate_text(payload: EvaluateRequest):
             chat_history = payload.chat_history
         )
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post('/evaluate-stream')
+def evaluate_stream(payload: EvaluateRequest):
+    try:
+        return StreamingResponse(
+            stream_evaluate(
+                user_input=payload.user_input,
+                chat_history=payload.chat_history
+            ),
+            media_type="text/plain"
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

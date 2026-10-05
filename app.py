@@ -538,31 +538,57 @@ async function sendQuery() {{
     transitionToChat();
     appendBubble("user", query);
 
-    const loadingBubble = appendBubble("assistant", '<span class="loading-dots">Connecting to Render backend (waking server up)</span>');
+    const loadingBubble = appendBubble("assistant", '<span class="loading-dots">Thinking...</span>');
 
     sendBtn.setAttribute("disabled", "true");
     sendBtn.classList.remove("active");
     input.value = "";
 
     try {{
-        const res = await fetch("{BACKEND_URL}/evaluate", {{
-            method: "POST",
-            headers: {{ "Content-Type": "application/json" }},
-            body: JSON.stringify({{ 
-                user_input: query,
-                chat_history: chatHistory
-            }})
+            const res = await fetch("{BACKEND_URL}/evaluate-stream", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{
+            user_input: query,
+            chat_history: chatHistory
+        }})
+    }});
+
+    if (res.ok) {{
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        let streamedText = "";
+
+        while (true) {{
+            const {{ value, done }} = await reader.read();
+
+            if (done) break;
+
+            streamedText += decoder.decode(value, {{ stream: true }});
+
+            loadingBubble.innerHTML = streamedText; 
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }}
+
+        streamedText += decoder.decode();
+
+        chatHistory.push({{
+            role: "user",
+            content: query
         }});
 
-        if (res.ok) {{
-            const data = await res.json();
-            loadingBubble.innerHTML = formatResponse(data);
-            chatHistory.push({{ role: "user", content: query }});
-            chatHistory.push({{ role: "assistant", content: JSON.stringify(data) }});
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }} else {{
-            loadingBubble.innerHTML = "Backend Error: Status Code " + res.status;
-        }}
+        chatHistory.push({{
+            role: "assistant",
+            content: streamedText
+        }});
+
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    }} else {{
+        loadingBubble.innerHTML = "Backend Error: Status Code " + res.status;
+    }}
     }} catch (err) {{
         loadingBubble.innerHTML = "Connection Error: Unable to reach AI engine. Render server may still be spinning up. Please try sending again in 10 seconds.";
     }}
