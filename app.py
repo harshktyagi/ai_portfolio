@@ -7,7 +7,7 @@ import streamlit as st
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Harsh's Portfolio Manager",
-    page_icon="Ħ",
+    page_icon="newh.png",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -178,6 +178,94 @@ html, body {{
 .fade-out {{ opacity: 0 !important; }}
 
 /* Input Box: Starts centered, drops to absolute bottom on chat start */
+.suggestions {{
+    position: absolute;
+    top: calc(40% + 68px);
+    left: 12px;
+    right: 12px;
+    text-align: center;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 5;
+}}
+
+.suggestion-label {{
+    color: #8e8e93;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}}
+
+.suggestion-chips {{
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}}
+
+.suggestion-chip {{
+    background: #1e1e20;
+    border: 1px solid #2f2f32;
+    color: #d1d1d6;
+    border-radius: 18px;
+    padding: 8px 13px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}}
+
+.suggestion-chip:hover {{
+    background: #29292c;
+    border-color: #444448;
+}}
+
+.followup-container {{
+    align-self: flex-start;
+    width: min(82%, 680px);
+    margin-top: -4px;
+    animation: fadeInBubble 0.3s ease forwards;
+}}
+
+.followup-label {{
+    color: #8e8e93;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}}
+
+.followup-chips {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}}
+
+.followup-chip {{
+    background: transparent;
+    border: 1px solid #2f2f32;
+    color: #a9a9b0;
+    border-radius: 16px;
+    padding: 7px 11px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}}
+
+.followup-chip:hover {{
+    background: #1e1e20;
+    border-color: #444448;
+    color: #f5f5f7;
+}}
+
+.suggestion-chip:active {{
+    transform: scale(0.97);
+}}
+
+/* Hide initial suggestions once chat begins */
+.workspace-stage.chat-active .suggestions {{
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+}}
+
 .gemini-box {{
     position: absolute;
     top: 40%;
@@ -435,6 +523,17 @@ html, body {{
             <span id="typewriter-base"></span><span id="dynamic-target" class="dynamic-word"></span>
         </div>
 
+                <div class="suggestions" id="initialSuggestions">
+            <div class="suggestion-label">Try asking</div>
+
+            <div class="suggestion-chips">
+                <button class="suggestion-chip" data-query="Tell me about Harsh">Tell me about Harsh</button>
+                <button class="suggestion-chip" data-query="What is Harsh's tech stack?">His tech stack</button>
+                <button class="suggestion-chip" data-query="Tell me about Harsh's projects">His projects</button>
+                <button class="suggestion-chip" data-query="Is Harsh ready for a Python backend role?">Evaluate for a backend role</button>
+            </div>
+        </div>
+
         <div class="chat-container" id="chatContainer"></div>
 
         <div class="gemini-box">
@@ -466,6 +565,7 @@ const input = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 const plusBtn = document.getElementById("plusBtn");
 const fileInput = document.getElementById("fileInput");
+const initialSuggestions = document.getElementById("initialSuggestions");
 
 let chatHistory = [];
 let charIndex = 0;
@@ -529,6 +629,12 @@ sendBtn.addEventListener("click", () => {{
     }}
 }});
 
+document.querySelectorAll("#initialSuggestions .suggestion-chip").forEach(button => {{
+    button.addEventListener("click", () => {{
+        sendQuery(button.dataset.query);
+    }});
+}});
+
 plusBtn.addEventListener("click", () => {{
     fileInput.click();
 }});
@@ -573,8 +679,95 @@ function appendBubble(role, content) {{
     return bubble;
 }}
 
-async function sendQuery() {{
-    const query = input.value.trim();
+function getFollowUps(query) {{
+    const q = query.toLowerCase();
+
+    if (
+        q.includes("tech stack") ||
+        q.includes("technology") ||
+        q.includes("python") ||
+        q.includes("fastapi")
+    ) {{
+        return [
+            "Tell me about his LLM experience",
+            "What are his strongest backend skills?",
+            "Is he ready for a Python backend role?"
+        ];
+    }}
+
+    if (
+        q.includes("project") ||
+        q.includes("portfolio")
+    ) {{
+        return [
+            "Explain his AI portfolio project",
+            "What technologies did he use?",
+            "Why is this project relevant to backend roles?"
+        ];
+    }}
+
+    if (
+        q.includes("job") ||
+        q.includes("role") ||
+        q.includes("jd") ||
+        q.includes("fit") ||
+        q.includes("ready")
+    ) {{
+        return [
+            "What are his strongest skills?",
+            "What skills is he missing?",
+            "What type of role is he targeting?"
+        ];
+    }}
+
+    return [
+        "Tell me about his tech stack",
+        "Tell me about his projects",
+        "Is he ready for a backend role?"
+    ];
+}}
+
+function showFollowUps(query) {{
+    const oldFollowUps = document.querySelector(".followup-container");
+
+    if (oldFollowUps) {{
+        oldFollowUps.remove();
+    }}
+
+    const followUps = getFollowUps(query);
+
+    const container = document.createElement("div");
+    container.className = "followup-container";
+
+    const label = document.createElement("div");
+    label.className = "followup-label";
+    label.textContent = "You might also ask";
+
+    const chips = document.createElement("div");
+    chips.className = "followup-chips";
+
+    followUps.forEach(question => {{
+        const button = document.createElement("button");
+        button.className = "followup-chip";
+        button.textContent = question;
+
+        button.addEventListener("click", () => {{
+            container.remove();
+            sendQuery(question);
+        }});
+
+        chips.appendChild(button);
+    }});
+
+    container.appendChild(label);
+    container.appendChild(chips);
+
+    chatContainer.appendChild(container);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}}
+
+async function sendQuery(suggestedQuery = null) {{
+    const query = suggestedQuery || input.value.trim();
     if (!query) return;
 
     transitionToChat();
@@ -625,6 +818,8 @@ async function sendQuery() {{
             role: "assistant",
             content: streamedText
         }});
+
+        showFollowUps(query);
 
         chatContainer.scrollTop = chatContainer.scrollHeight;
 

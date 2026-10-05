@@ -6,7 +6,7 @@ candidate_profile ={
                     Self taught in AI Python fundamantals, FastAPI, and LLM integrations through project based learning. Main focus is on building and shipping structured, production-ready AI applications, API logic, and backend tools.""",
 
     'skills' : {
-        'core_tech' : ['Python', 'Javascript', 'FastAPI', 'REST APIs', 'Git', 'VS Code', 'Codex', 'Claude Code' 'Gemini Code Assist'],
+        'core_tech' : ['Python', 'Javascript', 'FastAPI', 'REST APIs', 'Git', 'VS Code', 'Codex', 'Claude Code', 'Gemini Code Assist'],
         'ai_engineering' : [
             'Groq API',
             'Pydantic (Structured Outputs)',
