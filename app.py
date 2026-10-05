@@ -80,6 +80,7 @@ UNIFIED_APP_HTML = f"""
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 @import url('https://fonts.cdnfonts.com/css/candara');
 
@@ -241,6 +242,47 @@ html, body {{
     word-wrap: break-word;
     white-space: pre-wrap;
     animation: fadeInBubble 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}}
+
+.chat-bubble table {{
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 0.95rem;
+}}
+
+.chat-bubble th,
+.chat-bubble td {{
+    border: 1px solid #2f2f32;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+}}
+
+.chat-bubble th {{
+    font-weight: 600;
+    background: #252527;
+}}
+
+.chat-bubble p {{
+    margin: 0 0 10px 0;
+}}
+
+.chat-bubble p:last-child {{
+    margin-bottom: 0;
+}}
+
+.chat-bubble ul,
+.chat-bubble ol {{
+    margin-top: 8px;
+    margin-bottom: 10px;
+    padding-left: 22px;
+}}
+
+.chat-bubble code {{
+    background: #2c2c2e;
+    padding: 2px 5px;
+    border-radius: 4px;
 }}
 
 @keyframes fadeInBubble {{
@@ -538,7 +580,7 @@ async function sendQuery() {{
     transitionToChat();
     appendBubble("user", query);
 
-    const loadingBubble = appendBubble("assistant", '<span class="loading-dots">Thinking...</span>');
+    const loadingBubble = appendBubble("assistant", '<span class="loading-dots">Thinking...</span>');  
 
     sendBtn.setAttribute("disabled", "true");
     sendBtn.classList.remove("active");
@@ -567,7 +609,7 @@ async function sendQuery() {{
 
             streamedText += decoder.decode(value, {{ stream: true }});
 
-            loadingBubble.innerHTML = streamedText; 
+            loadingBubble.innerHTML = marked.parse(streamedText); 
 
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }}
